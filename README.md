@@ -15,7 +15,9 @@ docker start psg
 curl -d -type=ret --data-urlencode file@config.txt http://localhost:3000/api.php
 
 Can go to http://localhost:3000 to install new packages
+
 OR
+
 curl http://localhost:3000/index.php?install=package
 
 ***Will need atmospheres package if want to access MERRA2 - e.g. if requesting telluric spectra at different observing times and want to update atmospheric profile***
@@ -27,5 +29,6 @@ curl http://localhost:3000/index.php?install=package
 Running run_psg
 ---------------
 -Make sure psg_files/ folder exists or feed/edit paths to run_psg input
+
 -See example at bottom of run_psg.py
 
