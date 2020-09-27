@@ -1,19 +1,7 @@
 ##############################################################
 # RUN PSG
 #to. do
-# figure out re-reunning MERR2 for starting guess on diff nights' data
-# figure out more complex fitting routine
-
-# STRUCTURE
-# can load_data to replace config file
-# (must change date in config and figure out rerunning MERRA2 so r.n. just does diff w.l. regions from same file using matching config)
-# 
-###############################################################
-##############################################################
-# RUN PSG
-#to. do
-# figure out how to change observing site and line list - pending Geronimo's response on this
-# figure out retrieval option
+# figure out retrieval option, add more sites to store long/lat/alt for each observatory?
 
 # Usage Notes
 # The run_psg class currently takes a basic PSG config file (made with tellurics in mind) and can
@@ -32,6 +20,135 @@ plt.ion()
 
 font = {'size'   : 14}
 matplotlib.rc('font', **font)
+
+def load_data(lam1=770,lam2=780,instrument='IAG',default=True,target=None,obs_num=None):
+	"""
+	load earth transmission data - currently picking one file from IAG telluric atlas
+
+	lam1- lower wavelength limit (nm except uses microns for Parvi and Kpic- to do: add units)
+	lam2 - upper wavelength limit
+	mode - whether to load KittPeak, IAG, KPIC, or PARVI data
+	default - if true, will load some Ashley-picked file from all the options, if False, must set target and obs_num
+	target - target name and folder name for some instruments - check data
+	obs_num - observation number or keyword to select the desired observation - see code and data
+
+	returns [v,s,e] , tt - wavelength, flux, errors, time of observation
+
+
+	define site info here
+
+
+	"""
+	if instrument =='IAG':
+		if default:
+			target = 1
+			obs_num = '0163'
+
+		filenames = glob.glob('%s/%s/*.fits' %(data_dir,instrument))
+		f = fits.open('%s/%s/telluric_spectra_%s.fits' %(data_dir,instrument,target)) # target 1
+		hdr = f[0].header
+		jd = hdr['JD_%s'%obs_num] # obs_num: 0163
+
+		# convert jd to time to put in config file
+		tt = Time(jd,format='jd')
+
+		v = 1e7/f[1].data['v'][::-1]
+		s = f[1].data['telluric_%s'%obs_num][::-1]
+		e = 10*np.abs(f[1].data['res_med'][::-1]-1)
+		e[np.where(e > 0.1)] = 0.1
+
+		isub = np.where((v > lam1) & (v < lam2))[0]
+		
+		return np.vstack([v[isub],s[isub],e[isub]]).T, tt.ymdhms
+	
+	if instrument =='IAG_NIR':
+		pass
+
+	if instrument=='KittPeak':
+		f = np.loadtxt('%s/%s/transdata_0.5_1_mic'%(data_dir,instrument))
+
+		v = 1e7/f[:,0][::-1]
+		s = f[:,1][::-1]
+		e = np.ones_like(s) * 0.01
+		e[np.where(e > 0.1)] = 0.1
+
+		isub = np.where((v > lam1) & (v < lam2))[0]
+
+		tt =  Time(2451545,format='jd') # dummy time
+
+		return np.vstack([v[isub],s[isub],e[isub]]).T, tt.ymdhms
+
+	if instrument=='KPIC':
+		if default:
+			target = 'HR8799'
+			obs_num = '200702_0100'
+
+		filename = '%s/%s/%s/nspec%s_fluxes.fits' %(data_dir,instrument,target,obs_num)
+		hdulist = fits.open(filename)
+		header  = hdulist[0].header
+
+		fluxes  = hdulist[0].data
+		errors  = hdulist[1].data 
+		slits   = hdulist[2].data
+		darks   = hdulist[3].data
+
+		# determine which fiber was on the star
+		ibad = np.where(np.isnan(fluxes))
+		flux_mod = fluxes * 1.0
+		flux_mod[ibad] = 0
+		flux_levels = np.median(np.median(flux_mod,axis=1),axis=1)
+		istar = np.where(flux_levels == np.max(flux_levels))[0][0]
+
+		wl = 1000*fits.getdata('%s/%s/%s/calib/20200702_HIP_81497_wvs.fits' %(data_dir,instrument,target))
+
+		isub = np.where((wl[istar] > lam1) & (wl[istar] < lam2))
+
+		w, s, e, _, _ = wl[istar][isub],fluxes[istar][isub],errors[istar][isub],slits[istar][isub],darks[istar][isub]
+		if len(w) > 0:
+			order = np.unique(isub[0])
+
+		tt = Time(header['MJD'],format='mjd')
+
+		bad = np.where(np.isnan(s))
+		wgd   = np.delete(w,bad)
+		sgd   = np.delete(s,bad)
+		egd   = np.delete(e,bad)
+
+		return np.vstack([wgd, sgd/np.max(sgd), egd/np.max(sgd)]).T, tt.ymdhms
+
+	if instrument=='PARVI':
+		if default:
+			target = 'GJ229'
+			obs_num = '20191119102854'
+
+		filename = '%s/%s/%s/%s_R01_%s_deg0_sp.fits' %(data_dir,instrument, target, target, obs_num)
+
+		hdulist = fits.open(filename)
+		header  = hdulist[0].header
+
+		science = hdulist[1].data
+		sky     = hdulist[2].data
+		lfc     = hdulist[3].data
+		test    = hdulist[4].data
+
+		wl, raw, rawerr, fluxflattened, errflattened, flat, flaterr, flux, err = science
+
+		timeisot = obs_num[0:4] + '-' + obs_num[4:6] + '-' + obs_num[6:8] + 'T' + obs_num[8:10] + ':' + obs_num[10:12] + ':' + obs_num[12:]
+		tt = Time(timeisot,format='isot')
+
+		isub = np.where((wl > lam1) & (wl < lam2))
+		w, s, e = wl[isub], raw[isub], rawerr[isub]
+		if len(w) > 0:
+			order = np.unique(isub[0])
+
+		bad = np.where(np.isnan(s))
+		wgd   = np.delete(w,bad)
+		sgd   = np.delete(s,bad)
+		egd   = np.delete(e,bad)
+
+		return np.vstack([wgd, sgd/np.max(sgd), egd/np.max(sgd)]).T, tt.ymdhms
+
+
 
 class run_psg():
 	def __init__(self,
@@ -394,7 +511,7 @@ if __name__=='__main__':
 	data_dir = '../data'
 	data, obs_time = load_data(lam1=lam1,lam2=lam2,instrument=instrument,default=True,target=None,obs_num=None)
 	
-	psg2 = run_psg('generate',config_file,
+	psg2 = run_psg('retrieve',config_file,
 				data=data,
 				obs_time=obs_time,
 				line_list=line_list,
