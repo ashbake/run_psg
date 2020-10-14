@@ -1,7 +1,9 @@
 ##############################################################
 # RUN PSG
 #to. do
-# figure out retrieval option, add more sites to store long/lat/alt for each observatory?
+# figure out retrieval option
+#add more sites to store long/lat/alt for each observatory? 
+# make README helpful
 
 # Usage Notes
 # The run_psg class currently takes a basic PSG config file (made with tellurics in mind) and can
@@ -162,6 +164,7 @@ class run_psg():
 				 config_path='./psg_files/',
 				 output_path='./psg_files/',
 				 plot_path='./psg_files/',
+				 run_atm=True,
 				 savedat=False,
 				 ploton=False):
 		"""
@@ -180,7 +183,7 @@ class run_psg():
 		self.date = datetime.now().isoformat().replace(':','_') 
 		self.output_name = output_path + 'run_%s.txt' %self.date
 
-		self.gen_config(config, mode, obs_time, data, site) # creates self.config_to_run
+		self.gen_config(config, mode, obs_time, data, site, line_list, run_atm=run_atm) # creates self.config_to_run
 
 		if mode=='generate':
 			self.generate(self.config_to_run, self.output_name)
@@ -334,7 +337,7 @@ class run_psg():
 				f.write(line)
 			f.close()
 		
-	def gen_config(self, config, mode, obs_time, data, site):
+	def gen_config(self, config, mode, obs_time, data, site, line_list, run_atm=True):
 		"""
 		generate config file in steps because watm=y will change everything to the defaults
 		so must:
@@ -357,14 +360,23 @@ class run_psg():
 		self.new_atm_config = self.config_path  + 'new_atm_config_%s.txt'%self.date
 		self.config_to_run = self.config_path  + 'config_%s.txt'%self.date
 
-		# update basic general config file with new date, site, data ranges
-		args = self.define_args(mode=mode,date=obs_time,data=data, site=site)
-		self.edit_config(config, outname=self.temp_config, args=args)
-		self.config(self.temp_config, self.new_atm_config)
+		# update basic general config file with new date, site, data ranges for atm generation
+		if run_atm:
+			args = self.define_args(mode=mode,date=obs_time,data=data, site=site)
+			self.edit_config(config, outname=self.temp_config, args=args)
+			# run psg config generator to get new atm for that date, site, then update config with params
+			self.config(self.temp_config, self.new_atm_config)
 
-		# run psg config generator to get new atm for that date, site, then update config with params
-		args = self.define_args(mode=mode,date=obs_time, data=data, site=site)
-		self.edit_config(self.new_atm_config, outname=self.config_to_run, args=args, line_list=line_list)
+			# re-edit config to user-settings that were erased in psg run (e.g. like line list pref)
+			args = self.define_args(mode=mode,date=obs_time, data=data, site=site)
+			self.edit_config(self.new_atm_config, outname=self.config_to_run, args=args, line_list=line_list)
+		
+		else:
+			# re-edit config to user-settings that were erased in psg run (e.g. like line list pref)
+			args = self.define_args(mode=mode, date=obs_time, data=data, site=site)
+			self.edit_config(config, outname=self.config_to_run, args=args, line_list=line_list)
+
+
 
 	def config(self,config_file,output_name):
 		"""
@@ -489,7 +501,7 @@ class run_psg():
 
 if __name__=='__main__':
 	#lon, lat, alt = 33.1504, 242.8173, 1.871      #Palomar
-	lon, lat, alt = -155.468066, 19.820664, 4.084 #Mauna Kea
+	lon, lat, alt = -155.468066, 19.820664, 4.084  #Mauna Kea
 	#### EXAMPLE USAGE FOR GENERATE MODE
 	config_file = './config_gen.txt' # base configuration file downloaded from PSG - code modifies this to user's specs
 	data     = [900,920,800000]      # lam1 (nm), lam2 (nm), resolving power of spectrum to retrieve (if R~10^6, must keep lambda range to ~10nm, but depends on computing power probs)
@@ -503,7 +515,7 @@ if __name__=='__main__':
 				site=site,
 				ploton=True)
 
-	
+	 
 	#### EXAMPLE USAGE FOR RETRIEVE MODE
 	config_file = './config_ret.txt'
 	instrument = 'KittPeak' #options: KittPeak, IAG
@@ -517,6 +529,7 @@ if __name__=='__main__':
 				line_list=line_list,
 				site=site,
 				ploton=True)
+
 
 
 
