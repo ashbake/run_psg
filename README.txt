@@ -9,6 +9,7 @@ Basic instructions:
 4. At command line, run from run_psg folder:
 docker start psg
 python example_run.py
+docker stop psg   (if want to stop docker)
 5. Use your new telluric spectrum
 
 
