@@ -14,13 +14,16 @@ from run_psg import run_psg
 
 
 
-def psg_sequence(l0,l1,res,
-				obs_time,
-				site,
-				line_list,
-				config_path='./outputs/',
-				output_path='./outputs/',
-				plot_path='./outputs/'):
+def psg_sequence(
+	l0,
+	l1,
+	res,
+	obs_time,
+	site,
+	line_list,
+	config_path='./outputs/',
+	output_path='./outputs/',
+	plot_path='./outputs/'):
 	"""
 	"""
 	if l1-l0 < 10:
@@ -93,7 +96,8 @@ def compile_segments(filelist):
 		else:
 			temp_dic = read_output(file)
 			for key in temp_dic.keys():
-				dat[key] = np.concatenate((dat[key], temp_dic[key]))
+				if key != 'CIA': # CIA not in all columns so skip it
+					dat[key] = np.concatenate((dat[key], temp_dic[key]))
 
 	return dat
 
@@ -221,16 +225,16 @@ def plot_tellurics(l0,l1,res,outfile, plot_path):
 	plt.savefig(plot_path + 'plot_%s_%s_R%s.png'%(l0,l1,res))
 
 def save_dat(
-			dat, 
-			pwv, 
-			l0,
-			l1,
-			res,
-			obs_time,
-			site,
-			line_list,
-			output_path='outputs/',
-			mode='fits'):
+	dat, 
+	pwv, 
+	l0,
+	l1,
+	res,
+	obs_time,
+	site,
+	line_list,
+	output_path='outputs/',
+	mode='fits'):
 	"""
 	save compiled data dictionary as either 'fits' or 'text' or 'tapas'
 	'tapas' will save them as close to TAPAS format as possible
@@ -271,18 +275,17 @@ def save_dat(
 
 	return filename
 
-
-
-def run(l0,
-		l1,
-		res,
-		obs_time,
-		site,
-		line_list,
-		config_path='./outputs/',
-		output_path='./outputs/',
-		plot_path='./outputs/',
-		mode='fits'):
+def run(
+	l0,
+	l1,
+	res,
+	obs_time,
+	site,
+	line_list,
+	config_path='./outputs/',
+	output_path='./outputs/',
+	plot_path='./outputs/',
+	mode='fits'):
 	"""
 	run full fit
 	"""

@@ -10,17 +10,19 @@ if __name__=='__main__':
 	output_path    = './outputs/'              # where to dump final spectrum
 	config_path    = './configs/'              # where to dump PSG intermediate config files
 	obs_time       = '2019/11/18 10:07:16.000' # time of observation, must be in this format 
+	#lon, lat, elev = -155.468066, 19.820664, 4.084  #Mauna Kea
 	lon, lat, elev = 33.1504, 242.8173, 1.871  # palomar lon lat (deg), elevation in km
-	l0, l1, res    = 700, 720, 100000          # wavelength range and resolving power
+	l0, l1, res    = 1150, 1850, 500000        # wavelength range and resolving power
 	line_list      = 'HIT'                     # 'HIT' or 'GEISA' - must have lines package, HIT more up to date
 
 	# run psg, save telluric spectra to file
+	site = [lon,lat,elev]
 	outfile = run(
 				l0,
 				l1,
 				res,
 				obs_time,
-				[lon,lat,elev],
+				site,
 				line_list,
 				output_path=output_path,  # path to save final spectrum
 				config_path='./configs/', # path to save intermediate config files

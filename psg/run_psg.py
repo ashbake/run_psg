@@ -500,22 +500,6 @@ class run_psg():
 
 
 if __name__=='__main__':
-	#lon, lat, alt = 33.1504, 242.8173, 1.871      #Palomar
-	lon, lat, alt = -155.468066, 19.820664, 4.084  #Mauna Kea
-	#### EXAMPLE USAGE FOR GENERATE MODE
-	config_file = './config_gen.txt' # base configuration file downloaded from PSG - code modifies this to user's specs
-	data     = [900,920,800000]      # lam1 (nm), lam2 (nm), resolving power of spectrum to retrieve (if R~10^6, must keep lambda range to ~10nm, but depends on computing power probs)
-	obs_time = '2020/05/02 10:50'    # observing date and time in format 'YYYY/MM/DD HH:MM' - UT I think
-	site     = [lon, lat, alt]       # Longitude (deg), latitude(deg), and altitude (km) of observer
-	line_list= 'GEISA'                 # line list to use - either 'HIT' for hitran 2019 or 'GEISA' for geisa database (less updated)
-	psg2 = run_psg('generate',config_file,
-				data=data,
-				obs_time=obs_time,
-				line_list=line_list,
-				site=site,
-				ploton=True)
-
-	 
 	#### EXAMPLE USAGE FOR RETRIEVE MODE
 	config_file = './config_ret.txt'
 	instrument = 'KittPeak' #options: KittPeak, IAG
