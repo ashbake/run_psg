@@ -13,7 +13,6 @@ sys.path.append('../scripts/')
 from run_psg import run_psg
 
 
-
 def psg_sequence(
 	l0,
 	l1,
@@ -26,22 +25,11 @@ def psg_sequence(
 	plot_path='./outputs/'):
 	"""
 	"""
-	if l1-l0 < 10:
-		print('warning, not running, provide lambda range > 10nm')
-		return
-
-	# step through wavelengths in 10nm chunks
-	wls = np.arange(l0,l1+10,10)
-
-	# save filenames to combine them later
-	filelist = []
 	config_basic = './psg/config_gen.txt' # base configuration file downloaded from PSG - code modifies this to user's specs
 
-	for i in range(len(wls)-1):
-		run_atm = True if i==0 else False
-		config_input = config_basic if i==0 else psg.config_to_run
-		psg = run_psg('generate',config_input,
-					data=[wls[i],wls[i+1],res],
+	if l1-l0 < 10:
+		psg = run_psg('generate',config_basic,
+					data=[l0,l1,res],
 					obs_time=obs_time,
 					line_list=line_list,
 					site=site,
@@ -49,13 +37,36 @@ def psg_sequence(
 					output_path=output_path,
 					plot_path=plot_path,
 					ploton=False,
-					run_atm=run_atm)
+					run_atm=True)
 		
-		elevation = site[2]
-		if i==0: pwv  = calc_pwv(elevation, psg.config_to_run)
+		if i==0: pwv  = calc_pwv(site[2], psg.config_to_run)
+		filelist = [psg.output_name]
 
-		filelist.append(psg.output_name)
-		print(i)
+	else:
+		# step through wavelengths in 10nm chunks
+		wls = np.arange(l0,l1+10,10)
+
+		# save filenames to combine them later
+		filelist = []
+
+		for i in range(len(wls)-1):
+			run_atm = True if i==0 else False
+			config_input = config_basic if i==0 else psg.config_to_run
+			psg = run_psg('generate',config_input,
+						data=[wls[i],wls[i+1],res],
+						obs_time=obs_time,
+						line_list=line_list,
+						site=site,
+						config_path=config_path,
+						output_path=output_path,
+						plot_path=plot_path,
+						ploton=False,
+						run_atm=run_atm)
+			
+			if i==0: pwv  = calc_pwv(site[2], psg.config_to_run)
+
+			filelist.append(psg.output_name)
+			print(i)
 
 	return filelist, pwv
 
@@ -159,7 +170,7 @@ def pres_at_height(elevation, m=28.97):
 
 	return pres
 
-def calc_pwv(elevation, config_file):
+def calc_pwv(pres, config_file):
 	"""
 	calculate the PWV from the config file
 
@@ -169,11 +180,12 @@ def calc_pwv(elevation, config_file):
 	"""
 	atm     = extract_atm(config_file)
 
-	p_surf = pres_at_height(elevation) # gives all pressures in file, but only want to integrate from altitube of site, so much calculate surface pressure
+	#p_surf = pres_at_height(elevation) # gives all pressures in file, but only want to integrate from altitube of site, so much calculate surface pressure
+	p_surf=pres
 	g = 9.81 #m/s2
 
 	# locate index of surface pressure at elevation
-	i_pres_surf = np.where(atm['pres'] < p_surf)[0][0]
+	i_pres_surf = np.where(np.array(atm['pres']) < p_surf)[0][0]
 
 	# integrate h2o column density starting at i_pres_surf
 	int_h2o = np.abs(np.trapz(atm['H2O'][i_pres_surf:], x=atm['pres'][i_pres_surf:])) # integrated h2o column (atm)
@@ -234,16 +246,16 @@ def save_dat(
 	site,
 	line_list,
 	output_path='outputs/',
-	mode='fits'):
+	extension='fits'):
 	"""
 	save compiled data dictionary as either 'fits' or 'text' or 'tapas'
 	'tapas' will save them as close to TAPAS format as possible
 	"""
 	date =  obs_time[0:10]
-	lon, lat, elev = site
-	filename = output_path + 'psg_out_%s.fits' %date.replace("/", '.')
+	lon, lat, pres = site
+	filename = output_path + 'psg_out_%s_l0_%snm_l1_%snm_lon_%s_lat_%s_pres_%s.fits' %(date.replace("/", '.'),l0,l1,lon,lat,pres)
 
-	if mode=='fits':
+	if extension=='fits':
 		cols = []
 		for key in dat.keys():
 			cols.append(fits.Column(name=key, format='E', array=np.array(dat[key])))
@@ -254,7 +266,7 @@ def save_dat(
 		hdr = fits.Header()
 		hdr['CV']   = pwv
 		hdr['PWV']  = pwv
-		hdr['PWV_unit'] = 'mm'
+		hdr['PWV_unit']  = 'mm'
 		hdr['OBSTIME']   = obs_time
 		hdr['LINELIST']  = line_list
 		hdr['L0']   = l0
@@ -262,7 +274,7 @@ def save_dat(
 		hdr['R']    = res
 		hdr['LON']  = lon
 		hdr['LAT']  = lat
-		hdr['ELEV'] = elev
+		hdr['PRES'] = pres
 
 		primary_hdu = fits.PrimaryHDU(header=hdr)
 
@@ -272,6 +284,9 @@ def save_dat(
 			hdu.writeto(filename)
 		else:
 			hdu.writeto(filename)
+	else:
+		pass
+		# tbd text file option
 
 	return filename
 
@@ -285,7 +300,7 @@ def run(
 	config_path='./outputs/',
 	output_path='./outputs/',
 	plot_path='./outputs/',
-	mode='fits'):
+	extension='fits'):
 	"""
 	run full fit
 	"""
@@ -315,8 +330,9 @@ def run(
 			site,
 			line_list,
 			output_path=output_path,
-			mode=mode)
+			extension=extension)
 
 	plot_tellurics(l0,l1,res,outfile,plot_path)
 
 	return outfile
+
