@@ -179,6 +179,8 @@ class run_psg():
 
 		"""
 		self.mode = mode 
+		if mode not in ['retrieve', 'generate']: raise TypeError
+
 		self.config_path = config_path
 		self.date = datetime.now().isoformat().replace(':','_') 
 		self.output_name = output_path + 'run_%s.txt' %self.date
@@ -195,7 +197,7 @@ class run_psg():
 								data,
 								header='wavelength (nm) F_norm error')
 		else:
-			print('Mode not an option')
+			raise TypeError
 
 		if ploton:
 			self.plot_from_file(self.output_name,mode=mode)
@@ -210,10 +212,7 @@ class run_psg():
 		data - default 'same', or can be None (no data in config file), or 3 by N array of x, y, err as outputted by load_data fxn. the latter will replace data section in config
 				or if mode=='generate' then data should be [lam1, lam2, unit, Resolving Power] ...[float, float, str, float]
 		
-		site - name of observing site location, currently can choose from pre-sets in PSG e.g. "Maunakea (Keck)" or "Mt Graham (LBT)" or "USA California"
-				spelling and spaces must match exactly and 
-				Future: Could upgrade in future to enable "User-Defined", but would need to pass long/lat/elevation
-				Future: Could allow positioning to object by inputing zenith angle and azimuth, but haven't checked how much that matters (i.e. if earth PT profile actually changes or if just a simple airmass scaling)
+		site - presets dont work in docker framework - input lon, lat, pres as tuple (deg, deg, bar)
 
 		date - date of observation, used to pull satellite-informed PT profile. 
 			   code will automatically run Merra2 (satellite query) to update atmosphere parameters if date is provided
@@ -238,11 +237,13 @@ class run_psg():
 		if site != None:
 			# add site info
 			#args['GEOMETRY-REF'] = ['<GEOMETRY-REF>%s\n'%site] # this doesn't work in API mode
-			lon, lat, alt = site
+			lon, lat, pres = site
 			args['OBJECT-OBS-LONGITUDE']   = ['<OBJECT-OBS-LONGITUDE>%s\n'%lon]
 			args['OBJECT-OBS-LATITUDE']    = ['<OBJECT-OBS-LATITUDE>%s\n'%lat]
-			args['GEOMETRY-OBS-ALTITUDE']  = ['<GEOMETRY-OBS-ALTITUDE>=%s\n'%alt]
+			args['GEOMETRY-OBS-ALTITUDE']  = ['<GEOMETRY-OBS-ALTITUDE>=%s\n'%1.0] # set alt to 0 (ground level)
 			args['GEOMETRY-ALTITUDE-UNIT'] = ['<GEOMETRY-ALTITUDE-UNIT>km\n']
+			args['ATMOSPHERE-PRESSURE']    = ['<ATMOSPHERE-PRESSURE>%s\n'%pres]
+			args['ATMOSPHERE-PUNIT']       = ['<ATMOSPHERE-PUNIT>bar\n']
 
 		# generate mode is pretty decent as is
 		if mode == 'generate':
@@ -257,16 +258,17 @@ class run_psg():
 		if mode=='retrieve':
 			if np.all(data !=None):
 				# update lambda range
-				lam1, lam2 = data[0][0], data[-1][0] 
+				x, y, e, res = data[0], data[1], data[2], data[3]
+				lam1, lam2 = np.min(x), np.max(x)
 				args['GENERATOR-RANGE1'] = ['<GENERATOR-RANGE1>%s\n'%lam1] 
 				args['GENERATOR-RANGE2'] = ['<GENERATOR-RANGE2>%s\n'%lam2] 
 
 				# format data for config
 				args['DATA'] = ['<DATA>\n']
-				for i in range(len(data)):
-					args['DATA'].append('%s %s %s\n'%(data[i,0],data[i,1],data[i,2]))
+				for i in range(len(y)):
+					args['DATA'].append('%s %s %s\n'%(x[i],y[i],e[i]))
 			#args['DATA'].append('</DATA>')
-			args['RETRIEVAL-RESOLUTION']    = ['<RETRIEVAL-RESOLUTION>400000\n']
+			args['RETRIEVAL-RESOLUTION']    = ['<RETRIEVAL-RESOLUTION>%s\n'%res]
 			args['RETRIEVAL-FITTELLURIC']   = ['<RETRIEVAL-FITTELLURIC>N\n']
 			args['RETRIEVAL-FITSTELLAR']    = ['<RETRIEVAL-FITSTELLAR>N\n']
 			args['RETRIEVAL-FITFREQ']       = ['<RETRIEVAL-FITFREQ>N\n']
@@ -290,7 +292,7 @@ class run_psg():
 
 		return args
 
-	def edit_config(self,filename,outname=None,args=None,return_data=False,line_list='HIT'):
+	def edit_config(self,filename,outname,args=None,return_data=False,line_list='HIT'):
 		"""
 		Read the PSG config file to edit
 
@@ -309,6 +311,9 @@ class run_psg():
 		lines = f.readlines()	
 		f.close()
 
+		if len(lines)==0:
+			raise ValueError
+
 		if args != None:
 			keys = args.keys()
 			newlines = []
@@ -324,19 +329,22 @@ class run_psg():
 						newlines.append(line) # use old line if not changing it
 				if line.startswith('<ATMOSPHERE-TYPE>'): line_atm_type = i
 
-		# swap line_list catalog
-		if line_list=='HIT':
-			newlines[line_atm_type] = newlines[line_atm_type].replace('GEISA',line_list)
-		elif line_list=='GEISA':
-			newlines[line_atm_type] = newlines[line_atm_type].replace('HIT',line_list)
+			# swap line_list catalog
+			if line_list=='HIT':
+				newlines[line_atm_type] = newlines[line_atm_type].replace('GEISA',line_list)
+			elif line_list=='GEISA':
+				newlines[line_atm_type] = newlines[line_atm_type].replace('HIT',line_list)
 
-		# save new config
-		if outname != None:
-			f = open(outname,'w')
-			for line in newlines:
-				f.write(line)
-			f.close()
+			# save new config
+			if outname != None:
+				f = open(outname,'w')
+				for line in newlines:
+					f.write(line)
+				f.close()
 		
+		else:
+			np.savetxt(outname, lines)
+
 	def gen_config(self, config, mode, obs_time, data, site, line_list, run_atm=True):
 		"""
 		generate config file in steps because watm=y will change everything to the defaults
@@ -363,18 +371,18 @@ class run_psg():
 		# update basic general config file with new date, site, data ranges for atm generation
 		if run_atm:
 			args = self.define_args(mode=mode,date=obs_time,data=data, site=site)
-			self.edit_config(config, outname=self.temp_config, args=args)
+			self.edit_config(config, self.temp_config, args=args)
 			# run psg config generator to get new atm for that date, site, then update config with params
 			self.config(self.temp_config, self.new_atm_config)
 
 			# re-edit config to user-settings that were erased in psg run (e.g. like line list pref)
 			args = self.define_args(mode=mode,date=obs_time, data=data, site=site)
-			self.edit_config(self.new_atm_config, outname=self.config_to_run, args=args, line_list=line_list)
+			self.edit_config(self.new_atm_config, self.config_to_run, args=args, line_list=line_list)
 		
 		else:
 			# re-edit config to user-settings that were erased in psg run (e.g. like line list pref)
 			args = self.define_args(mode=mode, date=obs_time, data=data, site=site)
-			self.edit_config(config, outname=self.config_to_run, args=args, line_list=line_list)
+			self.edit_config(config, self.config_to_run, args=args, line_list=line_list)
 
 
 
@@ -459,7 +467,7 @@ class run_psg():
 		"""
 		if mode=='retrieve':
 			data = self.read_retrieval_output(filename)
-			x, y, e, model = np.array(data['lam']), np.array(test['Data']), np.array(data['Noise']), np.array(data['Model'])
+			x, y, e, model = np.array(data['lam']), np.array(data['Data']), np.array(data['Noise']), np.array(data['Model'])
 
 			f, (ax1, ax2) = plt.subplots(2, 1, sharex=True,figsize=(9,6))
 			ax1.errorbar(x,y,e,label='data')
@@ -503,7 +511,7 @@ if __name__=='__main__':
 	#### EXAMPLE USAGE FOR RETRIEVE MODE
 	config_file = './config_ret.txt'
 	instrument = 'KittPeak' #options: KittPeak, IAG
-	lam1, lam2 = 700,702
+	lam1, lam2 = 700,712
 	data_dir = '../data'
 	data, obs_time = load_data(lam1=lam1,lam2=lam2,instrument=instrument,default=True,target=None,obs_num=None)
 	
