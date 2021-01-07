@@ -240,7 +240,11 @@ class run_psg():
 			lon, lat, pres = site
 			args['OBJECT-OBS-LONGITUDE']   = ['<OBJECT-OBS-LONGITUDE>%s\n'%lon]
 			args['OBJECT-OBS-LATITUDE']    = ['<OBJECT-OBS-LATITUDE>%s\n'%lat]
+<<<<<<< HEAD
 			args['GEOMETRY-OBS-ALTITUDE']  = ['<GEOMETRY-OBS-ALTITUDE>=%s\n'%1.0] # set alt to 0 (ground level)
+=======
+			args['GEOMETRY-OBS-ALTITUDE']  = ['<GEOMETRY-OBS-ALTITUDE>=%s\n'%0] # set alt to 0 (ground level)
+>>>>>>> a3214ded18e6471941fd59797610961be7a55df2
 			args['GEOMETRY-ALTITUDE-UNIT'] = ['<GEOMETRY-ALTITUDE-UNIT>km\n']
 			args['ATMOSPHERE-PRESSURE']    = ['<ATMOSPHERE-PRESSURE>%s\n'%pres]
 			args['ATMOSPHERE-PUNIT']       = ['<ATMOSPHERE-PUNIT>bar\n']

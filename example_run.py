@@ -12,10 +12,16 @@ if __name__=='__main__':
 	config_path    = './configs/'               # where to dump PSG intermediate config files
 	plot_path      = './outputs/'               # where to dump PSG final plot
 	obs_time       = '2020/09/27 10:46:01.000'  # time of observation, must be in this format 
+<<<<<<< HEAD
 	#lat, lon, pres = 19.820664, -155.468066, 4.084  #Mauna Kea
 	#lat,lon, pres  = 33.1504, 242.8173, 0.85   # palomar  lat lon (deg), surface pressure in bar
 	lon, lat, pres  = 9.9158, 51.5413, 0.99     # gottingen
 	l0, l1, res    = 500, 520, 100000           # wavelength range and resolving power
+=======
+	lat, lon, pres = 19.820664, -155.468066, 4.084  #Mauna Kea
+	#lat,lon, pres  = 33.1504, 242.8173, 0.85     # palomar  lat lon (deg), surface pressure in bar
+	l0, l1, res    = 1900, 2600, 2000000        # wavelength range and resolving power
+>>>>>>> a3214ded18e6471941fd59797610961be7a55df2
 	line_list      = 'HIT'                      # 'HIT' or 'GEISA' - must have lines package, HIT more up to date
 
 	# run psg, save telluric spectra to file
@@ -31,3 +37,9 @@ if __name__=='__main__':
 				config_path=config_path,   # path to save intermediate config files
 				plot_path = plot_path,     # path so save plot
 				extension='fits')          # save as fits (currently only option)
+<<<<<<< HEAD
+=======
+
+
+
+>>>>>>> a3214ded18e6471941fd59797610961be7a55df2
