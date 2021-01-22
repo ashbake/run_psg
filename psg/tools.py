@@ -4,6 +4,7 @@ import matplotlib.pylab as plt
 from astropy.io import fits
 from astropy.time import Time
 from scipy import interpolate
+import inspect
 
 import glob,os,sys
 
@@ -22,10 +23,12 @@ def psg_sequence(
 	line_list,
 	config_path='./outputs/',
 	output_path='./outputs/',
-	plot_path='./outputs/'):
+	plot_path='./outputs/',
+	cleanup=False):
 	"""
 	"""
-	config_basic = './psg/config_gen.txt' # base configuration file downloaded from PSG - code modifies this to user's specs
+	psgpath = os.path.abspath(inspect.getfile(run_psg)) 
+	config_basic = psgpath.strip('run_psg.py') + 'config_gen.txt' # base configuration file downloaded from PSG - code modifies this to user's specs
 
 	if l1-l0 < 10:
 		psg = run_psg('generate',config_basic,
@@ -42,6 +45,10 @@ def psg_sequence(
 		if i==0: pwv  = calc_pwv(site[2], psg.config_to_run)
 		filelist = [psg.output_name]
 
+		if cleanup:
+			os.system('rm %s' %psg.temp_config)
+			os.system('rm %s' %psg.new_atm_config)
+		
 	else:
 		# step through wavelengths in 10nm chunks
 		wls = np.arange(l0,l1+10,10)
@@ -64,9 +71,18 @@ def psg_sequence(
 						run_atm=run_atm)
 			
 			if i==0: pwv  = calc_pwv(site[2], psg.config_to_run)
+			if cleanup:
+				if i>0:
+					os.system('rm %s' %config_input) # remove old configtorun file
+				elif i==0:
+					os.system('rm %s' %psg.temp_config) # these are only made when i==0 when run_atm=true
+					os.system('rm %s' %psg.new_atm_config)
 
 			filelist.append(psg.output_name)
 			print(i)
+
+	if cleanup:
+		os.system('rm %s' %psg.config_to_run) # rm last config to run file for either case
 
 	return filelist, pwv
 
@@ -236,6 +252,15 @@ def plot_tellurics(l0,l1,res,outfile, plot_path):
 
 	plt.savefig(plot_path + 'plot_%s_%s_R%s.png'%(l0,l1,res))
 
+def gen_final_spec_name(date, l0, l1, lon, lat, pres):
+	"""
+	spectrum save name fxn
+	date =  obs_time[0:10] (just yyyy/mm/dd)
+
+	"""
+	filename = 'psg_out_%s_l0_%snm_l1_%snm_lon_%s_lat_%s_pres_%s.fits' %(date.replace("/", '.'),l0,l1,lon,lat,pres)
+	return filename
+
 def save_dat(
 	dat, 
 	pwv, 
@@ -253,7 +278,8 @@ def save_dat(
 	"""
 	date =  obs_time[0:10]
 	lon, lat, pres = site
-	filename = output_path + 'psg_out_%s_l0_%snm_l1_%snm_lon_%s_lat_%s_pres_%s.fits' %(date.replace("/", '.'),l0,l1,lon,lat,pres)
+	final_spec_name = gen_final_spec_name(date, l0, l1, lon, lat, pres)
+	filename = output_path + final_spec_name
 
 	if extension=='fits':
 		cols = []
@@ -300,7 +326,8 @@ def run(
 	config_path='./outputs/',
 	output_path='./outputs/',
 	plot_path='./outputs/',
-	extension='fits'):
+	extension='fits',
+	cleanup=False):
 	"""
 	run full fit
 	"""
@@ -314,7 +341,8 @@ def run(
 					line_list,
 					config_path=config_path,
 					output_path=output_path,
-					plot_path=plot_path)
+					plot_path=plot_path,
+					cleanup=cleanup)
 
 	# open files, compile all results to dat dictionary
 	dat = compile_segments(filelist)
@@ -331,6 +359,10 @@ def run(
 			line_list,
 			output_path=output_path,
 			extension=extension)
+
+	if cleanup:
+		for file in filelist:
+			os.system('rm %s' %file)
 
 	plot_tellurics(l0,l1,res,outfile,plot_path)
 

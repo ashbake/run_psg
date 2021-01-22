@@ -15,9 +15,15 @@ docker stop psg   (if want to stop docker)
 
 Note on Packages Needed:
 -----------------------
-Can go to http://localhost:3000 to install new packages
-OR
-curl http://localhost:3000/index.php?install=package
+To install packages, open terminal and type:
+
+"curl --data-urlencode file@config.txt http://localhost:3000/api.php" with 'config.txt' as some local psg config file, then can go to http://localhost:3000 in browser to install new packages
+
+OR to do it just with command line can run:
+
+"curl http://localhost:3000/index.php?install=package"
+Where 'package' is the name of the package to install
+
 (See PSG API webpage for full instructions)
 
 ***Will need atmospheres package if want to access MERRA2 - e.g. if requesting telluric spectra at different observing time/location than in the default config file and want to update atmospheric profile succesfully***

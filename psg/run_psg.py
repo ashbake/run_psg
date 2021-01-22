@@ -23,134 +23,6 @@ plt.ion()
 font = {'size'   : 14}
 matplotlib.rc('font', **font)
 
-def load_data(lam1=770,lam2=780,instrument='IAG',default=True,target=None,obs_num=None):
-	"""
-	load earth transmission data - currently picking one file from IAG telluric atlas
-
-	lam1- lower wavelength limit (nm except uses microns for Parvi and Kpic- to do: add units)
-	lam2 - upper wavelength limit
-	mode - whether to load KittPeak, IAG, KPIC, or PARVI data
-	default - if true, will load some Ashley-picked file from all the options, if False, must set target and obs_num
-	target - target name and folder name for some instruments - check data
-	obs_num - observation number or keyword to select the desired observation - see code and data
-
-	returns [v,s,e] , tt - wavelength, flux, errors, time of observation
-
-
-	define site info here
-
-
-	"""
-	if instrument =='IAG':
-		if default:
-			target = 1
-			obs_num = '0163'
-
-		filenames = glob.glob('%s/%s/*.fits' %(data_dir,instrument))
-		f = fits.open('%s/%s/telluric_spectra_%s.fits' %(data_dir,instrument,target)) # target 1
-		hdr = f[0].header
-		jd = hdr['JD_%s'%obs_num] # obs_num: 0163
-
-		# convert jd to time to put in config file
-		tt = Time(jd,format='jd')
-
-		v = 1e7/f[1].data['v'][::-1]
-		s = f[1].data['telluric_%s'%obs_num][::-1]
-		e = 10*np.abs(f[1].data['res_med'][::-1]-1)
-		e[np.where(e > 0.1)] = 0.1
-
-		isub = np.where((v > lam1) & (v < lam2))[0]
-		
-		return np.vstack([v[isub],s[isub],e[isub]]).T, tt.ymdhms
-	
-	if instrument =='IAG_NIR':
-		pass
-
-	if instrument=='KittPeak':
-		f = np.loadtxt('%s/%s/transdata_0.5_1_mic'%(data_dir,instrument))
-
-		v = 1e7/f[:,0][::-1]
-		s = f[:,1][::-1]
-		e = np.ones_like(s) * 0.01
-		e[np.where(e > 0.1)] = 0.1
-
-		isub = np.where((v > lam1) & (v < lam2))[0]
-
-		tt =  Time(2451545,format='jd') # dummy time
-
-		return np.vstack([v[isub],s[isub],e[isub]]).T, tt.ymdhms
-
-	if instrument=='KPIC':
-		if default:
-			target = 'HR8799'
-			obs_num = '200702_0100'
-
-		filename = '%s/%s/%s/nspec%s_fluxes.fits' %(data_dir,instrument,target,obs_num)
-		hdulist = fits.open(filename)
-		header  = hdulist[0].header
-
-		fluxes  = hdulist[0].data
-		errors  = hdulist[1].data 
-		slits   = hdulist[2].data
-		darks   = hdulist[3].data
-
-		# determine which fiber was on the star
-		ibad = np.where(np.isnan(fluxes))
-		flux_mod = fluxes * 1.0
-		flux_mod[ibad] = 0
-		flux_levels = np.median(np.median(flux_mod,axis=1),axis=1)
-		istar = np.where(flux_levels == np.max(flux_levels))[0][0]
-
-		wl = 1000*fits.getdata('%s/%s/%s/calib/20200702_HIP_81497_wvs.fits' %(data_dir,instrument,target))
-
-		isub = np.where((wl[istar] > lam1) & (wl[istar] < lam2))
-
-		w, s, e, _, _ = wl[istar][isub],fluxes[istar][isub],errors[istar][isub],slits[istar][isub],darks[istar][isub]
-		if len(w) > 0:
-			order = np.unique(isub[0])
-
-		tt = Time(header['MJD'],format='mjd')
-
-		bad = np.where(np.isnan(s))
-		wgd   = np.delete(w,bad)
-		sgd   = np.delete(s,bad)
-		egd   = np.delete(e,bad)
-
-		return np.vstack([wgd, sgd/np.max(sgd), egd/np.max(sgd)]).T, tt.ymdhms
-
-	if instrument=='PARVI':
-		if default:
-			target = 'GJ229'
-			obs_num = '20191119102854'
-
-		filename = '%s/%s/%s/%s_R01_%s_deg0_sp.fits' %(data_dir,instrument, target, target, obs_num)
-
-		hdulist = fits.open(filename)
-		header  = hdulist[0].header
-
-		science = hdulist[1].data
-		sky     = hdulist[2].data
-		lfc     = hdulist[3].data
-		test    = hdulist[4].data
-
-		wl, raw, rawerr, fluxflattened, errflattened, flat, flaterr, flux, err = science
-
-		timeisot = obs_num[0:4] + '-' + obs_num[4:6] + '-' + obs_num[6:8] + 'T' + obs_num[8:10] + ':' + obs_num[10:12] + ':' + obs_num[12:]
-		tt = Time(timeisot,format='isot')
-
-		isub = np.where((wl > lam1) & (wl < lam2))
-		w, s, e = wl[isub], raw[isub], rawerr[isub]
-		if len(w) > 0:
-			order = np.unique(isub[0])
-
-		bad = np.where(np.isnan(s))
-		wgd   = np.delete(w,bad)
-		sgd   = np.delete(s,bad)
-		egd   = np.delete(e,bad)
-
-		return np.vstack([wgd, sgd/np.max(sgd), egd/np.max(sgd)]).T, tt.ymdhms
-
-
 
 class run_psg():
 	def __init__(self,
@@ -184,6 +56,7 @@ class run_psg():
 		self.config_path = config_path
 		self.date = datetime.now().isoformat().replace(':','_') 
 		self.output_name = output_path + 'run_%s.txt' %self.date
+		self.config_to_run = self.config_path  + 'config_%s.txt'%self.date #name of config to run on
 
 		self.gen_config(config, mode, obs_time, data, site, line_list, run_atm=run_atm) # creates self.config_to_run
 
@@ -240,7 +113,7 @@ class run_psg():
 			lon, lat, pres = site
 			args['OBJECT-OBS-LONGITUDE']   = ['<OBJECT-OBS-LONGITUDE>%s\n'%lon]
 			args['OBJECT-OBS-LATITUDE']    = ['<OBJECT-OBS-LATITUDE>%s\n'%lat]
-			args['GEOMETRY-OBS-ALTITUDE']  = ['<GEOMETRY-OBS-ALTITUDE>=%s\n'%0] # set alt to 0 (ground level)
+			args['GEOMETRY-OBS-ALTITUDE']  = ['<GEOMETRY-OBS-ALTITUDE>=%s\n'%0.0] # set alt to 0 (ground level)
 			args['GEOMETRY-ALTITUDE-UNIT'] = ['<GEOMETRY-ALTITUDE-UNIT>km\n']
 			args['ATMOSPHERE-PRESSURE']    = ['<ATMOSPHERE-PRESSURE>%s\n'%pres]
 			args['ATMOSPHERE-PUNIT']       = ['<ATMOSPHERE-PUNIT>bar\n']
@@ -363,13 +236,11 @@ class run_psg():
 		outputs
 		None, saves config files, config_DATE.txt will be used to run psg on
 		"""
-		# define default new config names (need several temps bc of how psg runs)
-		self.temp_config = self.config_path  + 'temp_config_%s.txt'%self.date
-		self.new_atm_config = self.config_path  + 'new_atm_config_%s.txt'%self.date
-		self.config_to_run = self.config_path  + 'config_%s.txt'%self.date
-
 		# update basic general config file with new date, site, data ranges for atm generation
 		if run_atm:
+			self.temp_config = self.config_path  + 'temp_config_%s.txt'%self.date
+			self.new_atm_config = self.config_path  + 'new_atm_config_%s.txt'%self.date
+
 			args = self.define_args(mode=mode,date=obs_time,data=data, site=site)
 			self.edit_config(config, self.temp_config, args=args)
 			# run psg config generator to get new atm for that date, site, then update config with params
@@ -385,14 +256,13 @@ class run_psg():
 			self.edit_config(config, self.config_to_run, args=args, line_list=line_list)
 
 
-
 	def config(self,config_file,output_name):
 		"""
 		run merra2 and save results to config file
 
 		move all config things here
 		"""
-		success = os.system('curl -d type=cfg -d wephm=y -d watm=y -d wgeo=y --data-urlencode file@%s http://localhost:3000/api.php > %s' %(config_file,output_name))
+		success = os.system('curl -d type=cfg -d wephm=y -d watm=y -d wgeo=y --data-urlencode file@%s https://psg.gsfc.nasa.gov/api.php > %s' %(config_file,output_name))
 
 	def generate(self,config_file,output_name):
 		"""
@@ -402,7 +272,7 @@ class run_psg():
 		"""
 		# run job
 		# can amke wephm, wgeo y to calc ephem or sky position- make this work plz
-		success = os.system('curl -d type=trn -d watm=n -d weph=y --data-urlencode file@%s http://localhost:3000/api.php > %s' %(config_file,output_name))
+		success = os.system('curl -d type=trn -d watm=n -d weph=y --data-urlencode file@%s https://psg.gsfc.nasa.gov/api.php > %s' %(config_file,output_name))
 		#success = os.system('curl -d type=cfg -d wephm=y -d watm=y -d wgeo=n --data-urlencode file@%s http://localhost:3000/api.php > %s' %(config_file,output_name))
 
 		return success
@@ -415,7 +285,7 @@ class run_psg():
 		"""
 		# run job
 		# can amke wephm, wgeo y to calc ephem or sky position- make this work plz
-		success = os.system('curl -d type=ret --data-urlencode file@%s http://localhost:3000/api.php > %s' %(config_file,output_name))
+		success = os.system('curl -d type=ret --data-urlencode file@%s https://psg.gsfc.nasa.gov/api.php > %s' %(config_file,output_name))
 
 		return success
 
@@ -506,21 +376,6 @@ class run_psg():
 
 			f.subplots_adjust(bottom=0.15,left=0.15,hspace=0,right=0.9,top=0.9)
 
-
-if __name__=='__main__':
-	#### EXAMPLE USAGE FOR RETRIEVE MODE
-	config_file = './config_ret.txt'
-	instrument = 'KittPeak' #options: KittPeak, IAG
-	lam1, lam2 = 700,712
-	data_dir = '../data'
-	data, obs_time = load_data(lam1=lam1,lam2=lam2,instrument=instrument,default=True,target=None,obs_num=None)
-	
-	psg2 = run_psg('retrieve',config_file,
-				data=data,
-				obs_time=obs_time,
-				line_list=line_list,
-				site=site,
-				ploton=True)
 
 
 
