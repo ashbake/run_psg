@@ -15,11 +15,11 @@ if __name__=='__main__':
 	config_path    = './configs/'               # where to dump PSG intermediate config files
 	plot_path      = './outputs/'               # where to dump PSG final plot
 	obs_time       = '2020/12/18 10:07:16.000'  # time of observation, must be in this format 
-	lon, lat, elev = 33.1504, 242.8173, 1.871   # palomar lon lat (deg), elevation in km
-	l0, l1, res    = 3000, 3030, 1000000        # wavelength range and resolving power
+	lon, lat, pres = 204.53, 19.82, .5826   # mauna kea lon lat (deg), pres in km
+	l0, l1, res    = 1900, 2600, 1000000        # wavelength range and resolving power
 	line_list      = 'HIT'                      # line list to use. 'HIT' or 'GEISA'
 	
-	site = [lon,lat,elev]
+	site = [lon,lat,pres]
 	# run psg, save telluric spectra to file
 	outfile = run(
 				l0,
