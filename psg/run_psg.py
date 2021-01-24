@@ -125,7 +125,7 @@ class run_psg():
 			args['GENERATOR-RANGE2']     = ['<GENERATOR-RANGE2>%s\n'%data[1]]
 			args['GENERATOR-RANGEUNIT']  = ['<GENERATOR-RANGEUNIT>nm\n']
 			args['GENERATOR-RESOLUTION']   = ['<GENERATOR-RESOLUTION>%s\n'%data[2]]
-			args['GENERATOR-RESOLUTIONUNIT'] = ['<GENERATOR-RESOLUTIONUNIT>RP\n']
+			args['GENERATOR-RESOLUTIONUNIT'] = ['<GENERATOR-RESOLUTIONUNIT>nm\n']
 
 		# hand edit retrieval variables for now, but fix to user inputs in future?
 		if mode=='retrieve':
@@ -262,7 +262,7 @@ class run_psg():
 
 		move all config things here
 		"""
-		success = os.system('curl -d type=cfg -d wephm=y -d watm=y -d wgeo=y --data-urlencode file@%s https://psg.gsfc.nasa.gov/api.php > %s' %(config_file,output_name))
+		success = os.system('curl -d type=cfg -d wephm=y -d watm=y -d wgeo=y --data-urlencode file@%s http://localhost:3000/api.php > %s' %(config_file,output_name))
 
 	def generate(self,config_file,output_name):
 		"""
@@ -272,7 +272,7 @@ class run_psg():
 		"""
 		# run job
 		# can amke wephm, wgeo y to calc ephem or sky position- make this work plz
-		success = os.system('curl -d type=trn -d watm=n -d weph=y --data-urlencode file@%s https://psg.gsfc.nasa.gov/api.php > %s' %(config_file,output_name))
+		success = os.system('curl -d type=trn -d watm=n -d weph=y --data-urlencode file@%s http://localhost:3000/api.php > %s' %(config_file,output_name))
 		#success = os.system('curl -d type=cfg -d wephm=y -d watm=y -d wgeo=n --data-urlencode file@%s http://localhost:3000/api.php > %s' %(config_file,output_name))
 
 		return success
@@ -285,7 +285,7 @@ class run_psg():
 		"""
 		# run job
 		# can amke wephm, wgeo y to calc ephem or sky position- make this work plz
-		success = os.system('curl -d type=ret --data-urlencode file@%s https://psg.gsfc.nasa.gov/api.php > %s' %(config_file,output_name))
+		success = os.system('curl -d type=ret --data-urlencode file@%s http://localhost:3000/api.php > %s' %(config_file,output_name))
 
 		return success
 

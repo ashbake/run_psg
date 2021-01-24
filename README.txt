@@ -30,4 +30,10 @@ Where 'package' is the name of the package to install
 
 ***Will need lines package if want to access GEISA database - e.g. if comparing HITRAN line lists to GEISA***
 
+Notes on Running:
+-----------------------
+- Running O3 seems to be too computationally expensive (at high res?) at low lambda<550nm. I take this molecule out
+- All wavelengths and the resolution element (defined as d_lambda) are in nanometers. This can be changed if you wish by editing run_psg.py where I edit the config file to define the units to be nm
+- If the resolution is too high, it fails, although in theory (by how it was described to me) it shouldn't. This is something I will follow up on. Generally a minimum d_lambda of 0.004 works across most of the spectrum. There is now a Resolution Kernel key word that seems like it should be turned on. Will double check this
+- Rayleigh scattering does some weird stuff around 2 microns. I therefore generally don't include Rayleigh in the NIR since it's not crucial anyhow
 

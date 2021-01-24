@@ -298,6 +298,7 @@ def save_dat(
 		hdr['L0']   = l0
 		hdr['LF']   = l1
 		hdr['R']    = res
+		hdr['LAMUNIT']    = 'nm'
 		hdr['LON']  = lon
 		hdr['LAT']  = lat
 		hdr['PRES'] = pres
