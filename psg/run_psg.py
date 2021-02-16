@@ -51,6 +51,8 @@ class run_psg():
 
 		"""
 		self.mode = mode 
+		self.run_atm=run_atm
+
 		if mode not in ['retrieve', 'generate']: raise TypeError
 
 		self.config_path = config_path
@@ -113,10 +115,11 @@ class run_psg():
 			lon, lat, pres = site
 			args['OBJECT-OBS-LONGITUDE']   = ['<OBJECT-OBS-LONGITUDE>%s\n'%lon]
 			args['OBJECT-OBS-LATITUDE']    = ['<OBJECT-OBS-LATITUDE>%s\n'%lat]
-			args['GEOMETRY-OBS-ALTITUDE']  = ['<GEOMETRY-OBS-ALTITUDE>=%s\n'%0.0] # set alt to 0 (ground level)
-			args['GEOMETRY-ALTITUDE-UNIT'] = ['<GEOMETRY-ALTITUDE-UNIT>km\n']
-			args['ATMOSPHERE-PRESSURE']    = ['<ATMOSPHERE-PRESSURE>%s\n'%pres]
-			args['ATMOSPHERE-PUNIT']       = ['<ATMOSPHERE-PUNIT>bar\n']
+			if self.run_atm:
+				args['GEOMETRY-OBS-ALTITUDE']  = ['<GEOMETRY-OBS-ALTITUDE>=%s\n'%0.0] # set alt to 0 (ground level)
+				args['GEOMETRY-ALTITUDE-UNIT'] = ['<GEOMETRY-ALTITUDE-UNIT>km\n']
+				args['ATMOSPHERE-PRESSURE']    = ['<ATMOSPHERE-PRESSURE>%s\n'%pres] #update w/ user pressure
+				args['ATMOSPHERE-PUNIT']       = ['<ATMOSPHERE-PUNIT>bar\n']
 
 		# generate mode is pretty decent as is
 		if mode == 'generate':
@@ -273,6 +276,7 @@ class run_psg():
 		# run job
 		# can amke wephm, wgeo y to calc ephem or sky position- make this work plz
 		success = os.system('curl -d type=trn -d watm=n -d weph=y --data-urlencode file@%s http://localhost:3000/api.php > %s' %(config_file,output_name))
+		#success = os.system('curl -d type=trn -d watm=n -d weph=y --data-urlencode file@%s https://psg.gsfc.nasa.gov/api.php > %s' %(config_file,output_name))
 		#success = os.system('curl -d type=cfg -d wephm=y -d watm=y -d wgeo=n --data-urlencode file@%s http://localhost:3000/api.php > %s' %(config_file,output_name))
 
 		return success

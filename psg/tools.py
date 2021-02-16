@@ -24,13 +24,14 @@ def psg_sequence(
 	config_path='./outputs/',
 	output_path='./outputs/',
 	plot_path='./outputs/',
-	cleanup=False):
+	cleanup=False,
+	run_atm=True):
 	"""
 	"""
 	psgpath = os.path.abspath(inspect.getfile(run_psg)) 
 	config_basic = psgpath.strip('run_psg.py') + 'config_gen.txt' # base configuration file downloaded from PSG - code modifies this to user's specs
-
-	if l1-l0 < 10:
+	spacing = 5
+	if l1-l0 <= spacing:
 		psg = run_psg('generate',config_basic,
 					data=[l0,l1,res],
 					obs_time=obs_time,
@@ -40,9 +41,9 @@ def psg_sequence(
 					output_path=output_path,
 					plot_path=plot_path,
 					ploton=False,
-					run_atm=True)
+					run_atm=run_atm)
 		
-		if i==0: pwv  = calc_pwv(site[2], psg.config_to_run)
+		pwv  = calc_pwv(site[2], psg.config_to_run)
 		filelist = [psg.output_name]
 
 		if cleanup:
@@ -50,14 +51,15 @@ def psg_sequence(
 			os.system('rm %s' %psg.new_atm_config)
 		
 	else:
-		# step through wavelengths in 10nm chunks
-		wls = np.arange(l0,l1+10,10)
+		# step through wavelengths in 10nm chunks (10 def by spacing var)
+		wls = np.arange(l0,l1+spacing,spacing)
 
 		# save filenames to combine them later
 		filelist = []
 
 		for i in range(len(wls)-1):
-			run_atm = True if i==0 else False
+			if run_atm:
+				run_atm = True if i==0 else False # turn on run_atm after i=0, keeps false if run_atm=false
 			config_input = config_basic if i==0 else psg.config_to_run
 			psg = run_psg('generate',config_input,
 						data=[wls[i],wls[i+1],res],
@@ -74,7 +76,7 @@ def psg_sequence(
 			if cleanup:
 				if i>0:
 					os.system('rm %s' %config_input) # remove old configtorun file
-				elif i==0:
+				elif (i==0) & (run_atm==True):
 					os.system('rm %s' %psg.temp_config) # these are only made when i==0 when run_atm=true
 					os.system('rm %s' %psg.new_atm_config)
 
@@ -138,12 +140,20 @@ def extract_atm(config_file):
 	f.close()
 
 	i = 0
+	while lines[i].startswith('<ATMOSPHERE-WEIGHT>') == False:
+		i+=1
+	weight = float(lines[i].strip('\n').split('>')[1])
+
+	i = 0
+	while lines[i].startswith('<ATMOSPHERE-LAYERS-MOLECULES>') == False:
+		i+=1
+	molecules = lines[i][29:].strip('\n').split(',')
+
+	i = 0
 	while lines[i].startswith('<ATMOSPHERE-LAYERS>') == False:
 		i+=1
-
-	weight = float(lines[i-4].strip('\n') .split('>')[1])
 	nlayers = int(lines[i].strip('\n').split('>')[-1])
-	molecules = lines[i-1][29:].strip('\n').split(',')
+	ilayer = i
 
 	atm = {}
 	atm['weight'] = weight
@@ -151,7 +161,7 @@ def extract_atm(config_file):
 	atm['temp'] = []
 	for molecule in molecules: atm[molecule] = []
 
-	for j in range(i,i+nlayers):
+	for j in range(ilayer,ilayer+nlayers):
 		layer = np.array(lines[j+1].strip('\n').split('>')[1].split(','),dtype='float')
 		atm['pres'].append(layer[0])
 		atm['temp'].append(layer[1])
@@ -252,13 +262,13 @@ def plot_tellurics(l0,l1,res,outfile, plot_path):
 
 	plt.savefig(plot_path + 'plot_%s_%s_R%s.png'%(l0,l1,res))
 
-def gen_final_spec_name(date, l0, l1, lon, lat, pres):
+def gen_final_spec_name(date, l0, l1, res, lon, lat, pres):
 	"""
 	spectrum save name fxn
 	date =  obs_time[0:10] (just yyyy/mm/dd)
 
 	"""
-	filename = 'psg_out_%s_l0_%snm_l1_%snm_lon_%s_lat_%s_pres_%s.fits' %(date.replace("/", '.'),l0,l1,lon,lat,pres)
+	filename = 'psg_out_%s_l0_%snm_l1_%snm_res_%snm_lon_%s_lat_%s_pres_%s.fits' %(date.replace("/", '.'),l0,l1,res,lon,lat,pres)
 	return filename
 
 def save_dat(
@@ -278,7 +288,7 @@ def save_dat(
 	"""
 	date =  obs_time[0:10]
 	lon, lat, pres = site
-	final_spec_name = gen_final_spec_name(date, l0, l1, lon, lat, pres)
+	final_spec_name = gen_final_spec_name(date, l0, l1, res, lon, lat, pres)
 	filename = output_path + final_spec_name
 
 	if extension=='fits':
@@ -328,22 +338,24 @@ def run(
 	output_path='./outputs/',
 	plot_path='./outputs/',
 	extension='fits',
-	cleanup=False):
+	cleanup=False,
+	run_atm=True):
 	"""
 	run full fit
 	"""
 	# run psg sequence - save to files
 	filelist, pwv = psg_sequence(
-					l0,
-					l1,
-					res,
-					obs_time,
-					site,
-					line_list,
-					config_path=config_path,
-					output_path=output_path,
-					plot_path=plot_path,
-					cleanup=cleanup)
+						l0,
+						l1,
+						res,
+						obs_time,
+						site,
+						line_list,
+						config_path=config_path,
+						output_path=output_path,
+						plot_path=plot_path,
+						cleanup=cleanup,
+						run_atm=run_atm)
 
 	# open files, compile all results to dat dictionary
 	dat = compile_segments(filelist)
