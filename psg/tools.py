@@ -43,7 +43,7 @@ def psg_sequence(
 					ploton=False,
 					run_atm=run_atm)
 		
-		pwv  = calc_pwv(site[2], psg.config_to_run)
+		pwv, airmass  = calc_pwv(site[2], psg.config_to_run)
 		filelist = [psg.output_name]
 
 		if cleanup:
@@ -72,7 +72,7 @@ def psg_sequence(
 						ploton=False,
 						run_atm=run_atm)
 			
-			if i==0: pwv  = calc_pwv(site[2], psg.config_to_run)
+			if i==0: pwv, airmass  = calc_pwv(site[2], psg.config_to_run)
 			if cleanup:
 				if i>0:
 					os.system('rm %s' %config_input) # remove old configtorun file
@@ -86,7 +86,7 @@ def psg_sequence(
 	if cleanup:
 		os.system('rm %s' %psg.config_to_run) # rm last config to run file for either case
 
-	return filelist, pwv
+	return filelist, pwv, airmass
 
 def read_output(file):
 	"""
@@ -229,7 +229,7 @@ def calc_pwv(pres, config_file):
 	#col_mass = p_surf * atm_to_pascal/g
 	#pwv = col_mass * int_h2o
 
-	return round(pwv*airmass,2)
+	return round(pwv,2), round(airmass,2)
 
 def airmass_from_ZA(ZA):
 	"""
@@ -274,6 +274,7 @@ def gen_final_spec_name(date, l0, l1, res, lon, lat, pres):
 def save_dat(
 	dat, 
 	pwv, 
+	airmass,
 	l0,
 	l1,
 	res,
@@ -294,7 +295,7 @@ def save_dat(
 	if extension=='fits':
 		cols = []
 		for key in dat.keys():
-			cols.append(fits.Column(name=key, format='E', array=np.array(dat[key])))
+			cols.append(fits.Column(name=key, format='D', array=np.array(dat[key])))
 
 		tbhdu = fits.BinTableHDU.from_columns(cols)
 
@@ -303,6 +304,7 @@ def save_dat(
 		hdr['CV']   = pwv
 		hdr['PWV']  = pwv
 		hdr['PWV_unit']  = 'mm'
+		hdr['airmass']  = airmass
 		hdr['OBSTIME']   = obs_time
 		hdr['LINELIST']  = line_list
 		hdr['L0']   = l0
@@ -344,7 +346,7 @@ def run(
 	run full fit
 	"""
 	# run psg sequence - save to files
-	filelist, pwv = psg_sequence(
+	filelist, pwv, airmass = psg_sequence(
 						l0,
 						l1,
 						res,
@@ -363,7 +365,8 @@ def run(
 	# save, pick save mode
 	outfile = save_dat(
 			dat, 
-			pwv, 
+			pwv,
+			airmass, 
 			l0,
 			l1,
 			res,
