@@ -12,14 +12,14 @@ from tools import *
 
 if __name__=='__main__':
 	# define everything
-	output_path    = './outputs/'  # where to dump final spectrum
+	output_path    = './outputs/'  		        # where to dump final spectrum
 	config_path    = './configs/'               # where to dump PSG intermediate config files
 	plot_path      = output_path                # where to dump PSG final plot
 	obs_time       = '2015/06/17 10:50:49.661'  # time of observation, must be in this format 
-	lon, lat, pres = 204.53, 19.82, 0.5826     # mauna kea lon lat (deg), pres in km
-	#lon, lat, pres = 9.9158, 51.5413, 0.98468   # goettingen
-	#lon, lat, pres = -111.5967, 31.9583, 0.78557# kitt peak
-	l0, l1, res    = 1900, 2600, 0.001           # wavelength range and resolving power
+	lon, lat, pres = 204.53, 19.82, 0.5826      # mauna kea lon lat (deg), pres in km
+	#lon, lat, pres = 9.9158, 51.5413, 0.98468  # goettingen
+	#lon, lat, pres = -111.5967, 31.9583, 0.7855# kitt peak
+	l0, l1, res    = 1900, 2600, 0.001          # wavelength range and resolving power
 	line_list      = 'HIT'                      # line list to use. 'HIT' or 'GEISA'
 
 	site = [lon,lat,pres]
