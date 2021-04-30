@@ -14,6 +14,43 @@ sys.path.append('../scripts/')
 from run_psg import run_psg
 
 
+def pick_site(sitename='maunakea', pres=None, lon=None, lat=None):
+	"""
+	possible choices:
+	maunakea: Mauna Kea
+	palomar: Palomar
+	gottingen: Gottingen
+
+	lon, lat, pres in degrees, degrees, bars
+	"""
+	sitelist = ['maunakea', 'palomar', 'gottingen', 'kittpeak']
+
+	if sitename in sitelist:
+		if sitename=='maunakea':
+			pres = 0.5826 if pres==None else pres    # use default pres only if none is provided
+			return [204.53, 19.82, pres]
+		
+		if sitename=='palomar':
+			pres = 0.8 if pres==None else pres
+			return [33.1504, 242.8173, pres]
+
+		if sitename=='gottingen':
+			pres = 0.98468 if pres==None else pres
+			return [9.9158, 51.5413, pres]
+
+		if sitename=='kittpeak':
+			pres = 0.7855 if pres==None else pres
+			return [-111.5967, 31.9583, pres]
+
+	elif sitename!=None:
+		raise ValueError('Wrong site name! Please pick from %s' %sitelist)
+
+	else:
+		# check lon lat pres  not none fall into right ranges
+		# otherwise raise error
+		return [lon,lat,pres]
+
+
 def psg_sequence(
 	l0,
 	l1,
