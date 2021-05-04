@@ -5,9 +5,7 @@ path = '/Users/ashbake/Documents/Research/Projects/PSG/psg_main/'
 import sys
 
 sys.path.append(path + 'psg/')
-from run_psg import run_psg
-from tools import *
-
+from tools import pick_site, run
 
 
 if __name__=='__main__':
@@ -15,14 +13,10 @@ if __name__=='__main__':
 	output_path    = './outputs/'  		        # where to dump final spectrum
 	config_path    = './configs/'               # where to dump PSG intermediate config files
 	plot_path      = output_path                # where to dump PSG final plot
-	obs_time       = '2015/06/17 10:50:49.661'  # time of observation, must be in this format 
-	lon, lat, pres = 204.53, 19.82, 0.5826      # mauna kea lon lat (deg), pres in km
-	#lon, lat, pres = 9.9158, 51.5413, 0.98468  # goettingen
-	#lon, lat, pres = -111.5967, 31.9583, 0.7855# kitt peak
-	l0, l1, res    = 1900, 2600, 0.001          # wavelength range and resolving power
-	line_list      = 'HIT'                      # line list to use. 'HIT' or 'GEISA'
+	obs_time       = '2021/04/20 10:50:49.661'  # time of observation, must be in this format 
+	site           = pick_site(sitename='palomar')
+	l0, l1, res    = 1100, 1900, 0.005          # wavelength range and resolving power
 
-	site = [lon,lat,pres]
 	# run psg, save telluric spectra to file
 	outfile = run(
 				l0,
@@ -30,7 +24,7 @@ if __name__=='__main__':
 				res,
 				obs_time,
 				site,
-				line_list,
+				'HIT',
 				output_path=path + output_path,   # path to save final spectrum
 				config_path=path + config_path,   # path to save intermediate config files
 				plot_path = path + plot_path,     # path so save plot
