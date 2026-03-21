@@ -13,9 +13,9 @@ if __name__=='__main__':
 	output_path    = './outputs/'  		        # where to dump final spectrum
 	config_path    = './configs/'               # where to dump PSG intermediate config files
 	plot_path      = output_path                # where to dump PSG final plot
-	obs_time       = '2021/04/20 10:50:49.661'  # time of observation, must be in this format 
+	obs_time       = '2024/03/01 10:50:49.661'  # time of observation, must be in this format 
 	site           = pick_site(sitename='palomar')
-	l0, l1, res    = 1100, 1900, 0.005          # wavelength range and resolving power
+	l0, l1, res    = 1000, 2000, 0.001          # wavelength range and resolving power
 
 	# run psg, save telluric spectra to file
 	outfile = run(
@@ -29,5 +29,5 @@ if __name__=='__main__':
 				config_path=path + config_path,   # path to save intermediate config files
 				plot_path = path + plot_path,     # path so save plot
 				extension='fits',                 # save as fits (currently only option)
-				cleanup=True,					  # deletes intermediate files
+				cleanup=False,					  # deletes intermediate files
 				run_atm=True) 					  # do or don't regenerate atm

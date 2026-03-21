@@ -258,7 +258,6 @@ class run_psg():
 			args = self.define_args(mode=mode, date=obs_time, data=data, site=site)
 			self.edit_config(config, self.config_to_run, args=args, line_list=line_list)
 
-
 	def config(self,config_file,output_name):
 		"""
 		run merra2 and save results to config file

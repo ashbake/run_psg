@@ -50,7 +50,6 @@ def pick_site(sitename='maunakea', pres=None, lon=None, lat=None):
 		# otherwise raise error
 		return [lon,lat,pres]
 
-
 def psg_sequence(
 	l0,
 	l1,
@@ -66,7 +65,7 @@ def psg_sequence(
 	"""
 	"""
 	psgpath = os.path.abspath(inspect.getfile(run_psg)) 
-	config_basic = psgpath.strip('run_psg.py') + 'config_gen.txt' # base configuration file downloaded from PSG - code modifies this to user's specs
+	config_basic = psgpath.strip('run_psg.py') + 'config_20220523.txt' # base configuration file downloaded from PSG - code modifies this to user's specs
 	spacing = 5
 	if l1-l0 <= spacing:
 		psg = run_psg('generate',config_basic,
