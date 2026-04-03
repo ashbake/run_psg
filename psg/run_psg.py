@@ -56,6 +56,20 @@ class run_psg():
 		if mode not in ['retrieve', 'generate']: raise TypeError
 
 		self.config_path = config_path
+		# if config path not exist, make it
+		if not os.path.exists(config_path):
+			os.makedirs(config_path)
+		
+		self.output_path = output_path
+		# if output path not exist, make it
+		if not os.path.exists(output_path):
+			os.makedirs(output_path)
+		
+		self.plot_path = plot_path
+		# if plot path not exist, make it
+		if not os.path.exists(plot_path):
+			os.makedirs(plot_path)
+
 		self.date = datetime.now().isoformat().replace(':','_') 
 		self.output_name = output_path + 'run_%s.txt' %self.date
 		self.config_to_run = self.config_path  + 'config_%s.txt'%self.date #name of config to run on

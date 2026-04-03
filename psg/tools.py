@@ -58,18 +58,25 @@ def psg_sequence(
 	obs_time,
 	site,
 	line_list,
-	config_path='./outputs/',
+	config_path='./configs/',
 	output_path='./outputs/',
 	plot_path='./outputs/',
 	cleanup=False,
-	run_atm=True):
+	run_atm=True,
+	config_name=None):
 	"""
 	"""
-	psgpath = os.path.abspath(inspect.getfile(run_psg)) 
-	config_basic = psgpath.strip('run_psg.py') + 'config_gen.txt' # base configuration file downloaded from PSG - code modifies this to user's specs
+	if config_name is None:
+		DEFAULT_CONFIG = './example_psg_customatm.txt'
+		psgpath = os.path.abspath(inspect.getfile(run_psg)) 
+		config_file = psgpath.strip('run_psg.py') + DEFAULT_CONFIG # base configuration file downloaded from PSG - code modifies this to user's specs
+	else:
+		print(f'load config from {config_path + config_name}')
+		config_file = config_path + config_name
+
 	spacing = 5
 	if l1-l0 <= spacing:
-		psg = run_psg('generate',config_basic,
+		psg = run_psg('generate',config_file,
 					data=[l0,l1,res],
 					obs_time=obs_time,
 					line_list=line_list,
@@ -84,8 +91,9 @@ def psg_sequence(
 		filelist = [psg.output_name]
 
 		if cleanup:
-			os.system('rm %s' %psg.temp_config)
-			os.system('rm %s' %psg.new_atm_config)
+			if run_atm:
+				os.system('rm %s' %psg.temp_config)
+				os.system('rm %s' %psg.new_atm_config)
 		
 	else:
 		# step through wavelengths in 10nm chunks (10 def by spacing var)
@@ -97,7 +105,7 @@ def psg_sequence(
 		for i in range(len(wls)-1):
 			if run_atm:
 				run_atm = True if i==0 else False # turn on run_atm after i=0, keeps false if run_atm=false
-			config_input = config_basic if i==0 else psg.config_to_run
+			config_input = config_file if i==0 else psg.config_to_run
 			psg = run_psg('generate',config_input,
 						data=[wls[i],wls[i+1],res],
 						obs_time=obs_time,
@@ -373,12 +381,13 @@ def run(
 	obs_time,
 	site,
 	line_list,
-	config_path='./outputs/',
+	config_path='./configs/',
 	output_path='./outputs/',
 	plot_path='./outputs/',
 	extension='fits',
 	cleanup=False,
-	run_atm=True):
+	run_atm=True,
+	config_name=None):
 	"""
 	run full fit
 	"""
@@ -394,7 +403,8 @@ def run(
 						output_path=output_path,
 						plot_path=plot_path,
 						cleanup=cleanup,
-						run_atm=run_atm)
+						run_atm=run_atm,
+						config_name=config_name)
 
 	# open files, compile all results to dat dictionary
 	dat = compile_segments(filelist)

@@ -1,10 +1,26 @@
 import numpy as np
+file_to_open = 'hitran_par_files/hitran01_Mar2026_v2.par'
+save_location = './data/'
 
-fr = open('hitran/hitran01.par')
+# check if file_to_open ends in .par, if not, set par_file to False
+if not file_to_open.endswith('.par'):
+    par_file = False
+else:
+    par_file = True
+
+# Make folder to save data. Make it be the name of the file without the .par extension
+import os
+save_folder = file_to_open.split('/')[-1][:-4]
+if not os.path.exists(save_location + save_folder):
+    os.makedirs(save_location + save_folder)
+
+fr = open(file_to_open)
+
+
 while True:
     line = fr.readline()
     if not line : break
-    if 1:
+    if not par_file:
         # Extraction of information from HITRAN file with special PSG format
         line = line.replace('#','0')
         sstr = line.split()
@@ -24,7 +40,7 @@ while True:
             ipos=ipos+dl; i=i+1
         #End extracting values
         mol=int(sstr[0]); iso=int(sstr[1]); wn=float(sstr[2]); lstr=float(sstr[3]); ener=float(sstr[7])
-        if lstr<1e-25: continue
+        #if lstr<1e-25: continue
         self_g= float(sstr[6]); self_n=0; self_d=0; self_t=0
         air_g = float(sstr[5]); air_n = float(sstr[8]); air_d = float(sstr[9]); air_t = 0
         h2_g = 0; h2_n = 0; h2_d = 0; h2_t = 0
@@ -58,8 +74,8 @@ while True:
 
     # Save the results
     for k in [0,1]:
-        if k==0: fout = 'data/hitran%02d' % mol
-        else: fout = 'data/hitran%02d-%02d' % (mol,iso)
+        if k==0: fout = save_location + save_folder + '/hitran%02d' % mol
+        else: fout = save_location + save_folder + '/hitran%02d-%02d' % (mol,iso)
         fw=open('%s.txt' % fout,'a+'); fw.write('%12.6f %11.4e %10.4f\n' % (wn,lstr,ener)); fw.close()
         fw=open('%s.dat' % fout,'ab+')
         fw.write(np.ubyte(mol)); fw.write(np.ubyte(iso))
