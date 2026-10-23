@@ -16,7 +16,7 @@ if __name__=='__main__':
 	plot_path      = output_path                # where to dump PSG final plot
 	obs_time       = '2016/02/27 11:46:07.8'    # time of observation, must be in this format 
 	site           = pick_site(sitename='gottingen')
-	l0, l1, res    = 1000, 1200, 0.001           # wavelength range and resolving power
+	l0, l1, res    = 500, 1100, 0.001           # wavelength range and resolution element d_lambda (all nm)
 	config_name    = 'psg_cfg_20160227_obsnum0025_IAG_solar.txt'#'psg_cfg_20150617_obsnum0041_IAG_solar.txt'# name of config to load. if none, will load default. Must be in config_path folder
 
 	# run psg, save telluric spectra to file
