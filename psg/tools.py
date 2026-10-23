@@ -32,7 +32,7 @@ def pick_site(sitename='maunakea', pres=None, lon=None, lat=None):
 		
 		if sitename=='palomar':
 			pres = 0.8 if pres==None else pres
-			return [33.1504, 242.8173, pres]
+			return [242.8173, 33.1504, pres]
 
 		if sitename=='gottingen':
 			pres = 0.98468 if pres==None else pres
@@ -96,7 +96,7 @@ def psg_sequence(
 				os.system('rm %s' %psg.new_atm_config)
 		
 	else:
-		# step through wavelengths in 10nm chunks (10 def by spacing var)
+		# step through wavelengths in 5nm chunks (5 def by spacing var)
 		wls = np.arange(l0,l1+spacing,spacing)
 
 		# save filenames to combine them later
